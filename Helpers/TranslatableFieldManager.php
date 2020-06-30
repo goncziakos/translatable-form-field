@@ -58,7 +58,7 @@ class TranslatableFieldManager
         }
     }
 
-    private function getFieldInDefaultLocale($entity, $field)
+    private function getEntityInDefaultLocale($entity)
     {
         $class = \get_class($entity);
         $identifierField = $this->em->getClassMetadata($class)->getIdentifier()[0]; // <- none composite keys only
@@ -66,7 +66,7 @@ class TranslatableFieldManager
 
         try {
             return $this->em->getRepository($class)->createQueryBuilder('entity')
-                ->select("entity.$field")
+                ->select("entity")
                 ->where("entity.$identifierField = :identifier")
                 ->setParameter('identifier', $identifierValue)
                 ->setMaxResults(1)
@@ -74,9 +74,9 @@ class TranslatableFieldManager
                 ->useQueryCache(false)
                 ->setHint(Query::HINT_CUSTOM_OUTPUT_WALKER, self::GEDMO_TRANSLATION_WALKER)
                 ->setHint(TranslatableListener::HINT_TRANSLATABLE_LOCALE, $this->defaultLocale)
-                ->getSingleResult()[$field];
+                ->getSingleResult();
         } catch (NoResultException $exception) {
-            return '';
+            return null;
         }
     }
 
@@ -104,8 +104,9 @@ class TranslatableFieldManager
         // translations
         $translations = $this->getTranslations($entity);
 
+        $entity = $this->getEntityInDefaultLocale($entity);
         // translations + default locale value
-        $translations[$this->defaultLocale] = $this->getFieldInDefaultLocale($entity, $fieldName, $this->defaultLocale);
+        $translations[$this->defaultLocale] = $entity ? $this->propertyAccessor->getValue($entity, $fieldName) : null;
 
         return $translations;
     }

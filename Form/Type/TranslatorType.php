@@ -34,12 +34,11 @@ class TranslatorType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $fieldName = $builder->getName();
         $locales = $this->locales;
 
         // set fields
         $builder->addEventListener(FormEvents::PRE_SET_DATA,
-            function (FormEvent $event) use ($fieldName, $locales, $options) {
+            function (FormEvent $event) use ($locales, $options) {
                 $form = $event->getForm();
 
                 foreach ($locales as $locale) {
@@ -48,7 +47,7 @@ class TranslatorType extends AbstractType
             });
 
         // submit
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($fieldName, $locales) {
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($locales) {
             $this->translatablefieldmanager->persistTranslations($event->getForm(), $locales);
         });
     }
