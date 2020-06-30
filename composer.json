@@ -1,16 +1,27 @@
 {
-    "name": "benedicthelfer/translatable-form-field"
-    ,"type": "symfony-bundle"
-    ,"description": "A Symfony2/3 bundle responsible for translatable form fields using sonata admin."
-    ,"keywords": ["gedmo", "sonata", "translate", "translation", "translatable"]
-    ,"homepage": "https://github.com/benedicthelfer/translatable-form-field"
-    ,"license": "MIT"
-    ,"version": "0.0.4-dev"
-    ,"target-dir": "Bnh/TranslatableFieldBundle"
-    ,"autoload": {
-        "psr-0": { "Bnh\\TranslatableFieldBundle": "" }
+  "name": "benedicthelfer/translatable-form-field",
+  "type": "symfony-bundle",
+  "description": "A Symfony4 bundle responsible for translatable form fields using sonata admin.",
+  "keywords": [
+    "gedmo",
+    "sonata",
+    "translate",
+    "translation",
+    "translatable"
+  ],
+  "homepage": "https://github.com/benedicthelfer/translatable-form-field",
+  "license": "MIT",
+  "version": "0.0.5-dev",
+  "target-dir": "Bnh/TranslatableFieldBundle",
+  "autoload": {
+    "psr-0": {
+      "Bnh\\TranslatableFieldBundle": ""
     }
-    ,"require": {
-        "php": ">=5.3.3"
-    }
+  },
+  "require": {
+    "php": ">=7.3",
+    "symfony/form": "^4.4",
+    "symfony/orm-pack": "^1.0",
+    "stof/doctrine-extensions-bundle": "^1.4"
+  }
 }

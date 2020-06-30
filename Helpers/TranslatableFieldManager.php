@@ -2,7 +2,8 @@
 
 namespace Bnh\TranslatableFieldBundle\Helpers;
 
-use Symfony\Bridge\Doctrine\RegistryInterface as RegistryInterface;
+use Doctrine\ORM\NoResultException;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Form\Form as Form;
 use Symfony\Component\PropertyAccess\PropertyAccess as PropertyAccess;
 use Doctrine\ORM\Query as Query;
@@ -14,11 +15,11 @@ use Gedmo\Mapping\Annotation\TranslationEntity as TranslationEntity;
 class TranslatableFieldManager
 {
 
-    CONST GEDMO_TRANSLATION = 'Gedmo\\Translatable\\Entity\\Translation';
-    CONST GEDMO_TRANSLATION_WALKER = 'Gedmo\\Translatable\\Query\\TreeWalker\\TranslationWalker';
-    CONST GEDMO_PERSONAL_TRANSLATIONS_GET = 'getTranslations';
-    CONST GEDMO_PERSONAL_TRANSLATIONS_SET = 'addTranslation';
-    CONST GEDMO_PERSONAL_TRANSLATIONS_FIND = 'hasTranslation';
+    const GEDMO_TRANSLATION = 'Gedmo\\Translatable\\Entity\\Translation';
+    const GEDMO_TRANSLATION_WALKER = 'Gedmo\\Translatable\\Query\\TreeWalker\\TranslationWalker';
+    const GEDMO_PERSONAL_TRANSLATIONS_GET = 'getTranslations';
+    const GEDMO_PERSONAL_TRANSLATIONS_SET = 'addTranslation';
+    const GEDMO_PERSONAL_TRANSLATIONS_FIND = 'hasTranslation';
 
     protected $em;
     private $translationRepository;
@@ -26,7 +27,7 @@ class TranslatableFieldManager
     private $defaultLocale;
     private $annotationReader;
 
-    public function __construct(RegistryInterface $reg, $defaultLocale)
+    public function __construct(ManagerRegistry $reg, $defaultLocale)
     {
         $this->em = $reg->getManager();
         $this->translationRepository = $this->em->getRepository(self::GEDMO_TRANSLATION);
@@ -34,22 +35,24 @@ class TranslatableFieldManager
         $this->defaultLocale = $defaultLocale;
         $this->annotationReader = new AnnotationReader();
     }
-    
+
     /* @var $translation AbstractPersonalTranslation */
     private function getTranslations($entity)
     {
         // 'personal' translations (separate table for each entity)
-        if (\method_exists($entity, self::GEDMO_PERSONAL_TRANSLATIONS_GET) && \is_callable(array($entity, self::GEDMO_PERSONAL_TRANSLATIONS_GET))) {
+        if (\method_exists($entity, self::GEDMO_PERSONAL_TRANSLATIONS_GET) && \is_callable(array(
+                $entity,
+                self::GEDMO_PERSONAL_TRANSLATIONS_GET
+            ))) {
             $translations = array();
             foreach ($entity->{self::GEDMO_PERSONAL_TRANSLATIONS_GET}() as $translation) {
                 $translations[$translation->getLocale()] = $translation->getContent();
             }
 
             return $translations;
-        }
-        // 'basic' translations (ext_translations table)
+        } // 'basic' translations (ext_translations table)
         else {
-            return \array_map(function($element) {
+            return \array_map(function ($element) {
                 return \array_shift($element);
             }, $this->translationRepository->findTranslations($entity));
         }
@@ -61,7 +64,8 @@ class TranslatableFieldManager
         $identifierField = $this->em->getClassMetadata($class)->getIdentifier()[0]; // <- none composite keys only
         $identifierValue = $this->propertyAccessor->getValue($entity, $identifierField);
 
-        return $this->em->getRepository($class)->createQueryBuilder('entity')
+        try {
+            return $this->em->getRepository($class)->createQueryBuilder('entity')
                 ->select("entity.$field")
                 ->where("entity.$identifierField = :identifier")
                 ->setParameter('identifier', $identifierValue)
@@ -71,6 +75,9 @@ class TranslatableFieldManager
                 ->setHint(Query::HINT_CUSTOM_OUTPUT_WALKER, self::GEDMO_TRANSLATION_WALKER)
                 ->setHint(TranslatableListener::HINT_TRANSLATABLE_LOCALE, $this->defaultLocale)
                 ->getSingleResult()[$field];
+        } catch (NoResultException $exception) {
+            return '';
+        }
     }
 
     private function setFieldInDefaultLocale($entity, $field, $value)
@@ -121,25 +128,25 @@ class TranslatableFieldManager
         $qb = $this->translationRepository->createQueryBuilder('t');
 
         return $qb->delete()
-                ->where('t.objectClass = :class')
-                ->andWhere('t.field = :fieldName')
-                ->andWhere('t.foreignKey = :id')
-                ->andWhere('t.locale = :locale')
-                ->setParameter('class', $class)
-                ->setParameter('fieldName', $fieldName)
-                ->setParameter('id', $foreignId)
-                ->setParameter('locale', $locale)
-                ->getQuery();
+            ->where('t.objectClass = :class')
+            ->andWhere('t.field = :fieldName')
+            ->andWhere('t.foreignKey = :id')
+            ->andWhere('t.locale = :locale')
+            ->setParameter('class', $class)
+            ->setParameter('fieldName', $fieldName)
+            ->setParameter('id', $foreignId)
+            ->setParameter('locale', $locale)
+            ->getQuery();
     }
 
     // remove personal translations
     private function removePersonalTranslation($locale, $fieldName, $class, $objectId)
     {
 
-        $translationClass = NULL;
+        $translationClass = null;
         $rc = new \ReflectionClass($class);
         do {
-            if (NULL !== $this->annotationReader->getClassAnnotation($rc, TranslationEntity::class)) {
+            if (null !== $this->annotationReader->getClassAnnotation($rc, TranslationEntity::class)) {
                 $translationClass = $this->annotationReader->getClassAnnotation($rc, TranslationEntity::class)->class;
                 break;
             }
@@ -148,13 +155,13 @@ class TranslatableFieldManager
         $qb = $this->em->getRepository($translationClass)->createQueryBuilder('t');
 
         return $qb->delete()
-                ->where('t.locale = :locale')
-                ->andWhere('t.object = :object_id')
-                ->andWhere('t.field = :field_name')
-                ->setParameter('locale', $locale)
-                ->setParameter('object_id', $objectId)
-                ->setParameter('field_name', $fieldName)
-                ->getQuery();
+            ->where('t.locale = :locale')
+            ->andWhere('t.object = :object_id')
+            ->andWhere('t.field = :field_name')
+            ->setParameter('locale', $locale)
+            ->setParameter('object_id', $objectId)
+            ->setParameter('field_name', $fieldName)
+            ->getQuery();
     }
 
     // UPDATE
@@ -165,21 +172,27 @@ class TranslatableFieldManager
         $submittedValues = $form->getData();
 
         $removeQueries = array();
-        $personalTranslations = \method_exists($entity, self::GEDMO_PERSONAL_TRANSLATIONS_SET) && \is_callable(array($entity, self::GEDMO_PERSONAL_TRANSLATIONS_SET));
+        $personalTranslations = \method_exists($entity, self::GEDMO_PERSONAL_TRANSLATIONS_SET) && \is_callable(array(
+                $entity,
+                self::GEDMO_PERSONAL_TRANSLATIONS_SET
+            ));
         foreach ($locales as $locale) {
             if (array_key_exists($locale, $submittedValues)) {
                 $value = $submittedValues[$locale];
-                if ($value === NULL) {
+                if ($value === null) {
                     // remove - default locale - external / personal
                     if ($locale === $this->defaultLocale) {
-                        $this->setFieldInDefaultLocale($entity, $fieldName, NULL);
+                        $this->setFieldInDefaultLocale($entity, $fieldName, null);
                     } else {
-                        if ($personalTranslations && $entity->{self::GEDMO_PERSONAL_TRANSLATIONS_FIND}($locale, $fieldName)) {
+                        if ($personalTranslations && $entity->{self::GEDMO_PERSONAL_TRANSLATIONS_FIND}($locale,
+                                $fieldName)) {
                             // remove - not default locale - personal
-                            $removeQueries[] = $this->removePersonalTranslation($locale, $fieldName, \get_class($entity), $this->getEntityId($entity));
+                            $removeQueries[] = $this->removePersonalTranslation($locale, $fieldName,
+                                \get_class($entity), $this->getEntityId($entity));
                         } else {
                             // remove - not default locale - external
-                            $removeQueries[] = $this->removeTranslation($locale, $fieldName, \get_class($entity), $this->getEntityId($entity));
+                            $removeQueries[] = $this->removeTranslation($locale, $fieldName, \get_class($entity),
+                                $this->getEntityId($entity));
                         }
                     }
                     continue;
@@ -191,7 +204,8 @@ class TranslatableFieldManager
                         } else {
                             // add - not default locale - personal
                             $translationClassName = $this->getPersonalTranslationClassName($entity);
-                            $entity->{self::GEDMO_PERSONAL_TRANSLATIONS_SET}(new $translationClassName($locale, $fieldName, $value));
+                            $entity->{self::GEDMO_PERSONAL_TRANSLATIONS_SET}(new $translationClassName($locale,
+                                $fieldName, $value));
                         }
                     } else {
                         // add - any locale - external
@@ -203,7 +217,7 @@ class TranslatableFieldManager
 
         // run delete queries
         if (!empty($removeQueries)) {
-            $this->em->transactional(function() use ($removeQueries) {
+            $this->em->transactional(function () use ($removeQueries) {
                 foreach ($removeQueries as $deletequery) {
                     $deletequery->execute();
                 }

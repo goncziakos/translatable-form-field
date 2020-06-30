@@ -22,18 +22,19 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->scalarNode('default_locale')->end()
-                ->arrayNode('locales')
-                    ->beforeNormalization()
-                        ->ifString()
-                        ->then(function($v) { return preg_split('/\s*,\s*/', $v); })
-                    ->end()
-                    ->requiresAtLeastOneElement()
-                    ->prototype('scalar')->end()
-                ->end()
-                ->scalarNode('templating')->defaultValue("BnhTranslatableFieldBundle:FormType:bnhtranslations.html.twig")->end()
+            ->scalarNode('default_locale')->end()
+            ->arrayNode('locales')
+            ->beforeNormalization()
+            ->ifString()
+            ->then(function ($v) {
+                return preg_split('/\s*,\s*/', $v);
+            })
             ->end()
-            ;
+            ->requiresAtLeastOneElement()
+            ->prototype('scalar')->end()
+            ->end()
+            ->scalarNode('templating')->defaultValue("BnhTranslatableFieldBundle:FormType:bnhtranslations.html.twig")->end()
+            ->end();
 
         return $treeBuilder;
     }

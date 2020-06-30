@@ -22,8 +22,11 @@ class TranslatorType extends AbstractType
     private $locales;
     private $currentLocale;
 
-    public function __construct($localeCodes, TranslatableFieldManager $translatableFieldManager, TranslatorInterface $translator)
-    {
+    public function __construct(
+        $localeCodes,
+        TranslatableFieldManager $translatableFieldManager,
+        TranslatorInterface $translator
+    ) {
         $this->locales = $localeCodes;
         $this->translatablefieldmanager = $translatableFieldManager;
         $this->currentLocale = $translator->getLocale();
@@ -35,13 +38,14 @@ class TranslatorType extends AbstractType
         $locales = $this->locales;
 
         // set fields
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($fieldName, $locales, $options) {
-            $form = $event->getForm();
+        $builder->addEventListener(FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($fieldName, $locales, $options) {
+                $form = $event->getForm();
 
-            foreach ($locales as $locale) {
-                $form->add($locale, $options['form_type'], ['label' => false]);
-            }
-        });
+                foreach ($locales as $locale) {
+                    $form->add($locale, $options['form_type'], ['label' => false]);
+                }
+            });
 
         // submit
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($fieldName, $locales) {
@@ -51,7 +55,8 @@ class TranslatorType extends AbstractType
 
     public function buildView(FormView $view, FormInterface $form, array $options)
     {
-        $translatedFieldValues = $this->translatablefieldmanager->getTranslatedFields($form->getParent()->getData(), $form->getName());
+        $translatedFieldValues = $this->translatablefieldmanager->getTranslatedFields($form->getParent()->getData(),
+            $form->getName());
 
         // set form field data (translations)
         foreach ($this->locales as $locale) {
@@ -95,7 +100,7 @@ class TranslatorType extends AbstractType
             'form_type' => TextType::class,
         ));
     }
-    
+
     public function getBlockPrefix()
     {
         return $this->getName();
