@@ -1,32 +1,67 @@
 # translatable-form-field
-This bundle is responsible for translatable form fields in symfony2 / sonata admin.
+This bundle is responsible for translatable form fields in symfony4 sonata admin.
 
 Usage:
 
-- add to 'AppKernel'
-```
-public function registerBundles()
-{
-    $bundles = array(
+- add to config/bundles.php
+```PHP
+<?php
+
+return [
     // ...
-    new Bnh\TranslatableFieldBundle\BnhTranslatableFieldBundle()
-    );
-}
+    Bnh\TranslatableFieldBundle\BnhTranslatableFieldBundle::class => ['all' => true],
+];
 ```
-- config
-```
+- Create config
+
+config/packages/bnh_translatable_field.yaml
+
+```YAML
 bnh_translatable_field:
     default_locale: en_GB
     locales: ['de_DE', 'en_GB', 'es_ES', 'fr_FR', 'hu_HU', 'ru_RU', 'sv_SE']
     templating: 'BnhTranslatableFieldBundle:FormType:bnhtranslations.html.twig'
 ```
 
-- entity (ext_translations)
+- Check gedmo config
+
+config/packages/stof_doctrine_extensions.yaml
+
+```YAML
+stof_doctrine_extensions:
+  default_locale: '%locale%'
+  translation_fallback: true
+  orm:
+    default:
+      timestampable: true
 ```
+
+- Check doctrine config
+
+config/packages/doctrine.yaml
+
+```YAML
+doctrine:
+    orm:
+        mappings:
+            gedmo_translatable:
+                is_bundle: false
+                type: annotation
+                dir: '%kernel.project_dir%/vendor/gedmo/doctrine-extensions/lib/Gedmo/Translatable/Entity'
+                prefix: 'Gedmo\Translatable\Entity'
+                alias: GedmoTranslatable
+```
+
+- entity (ext_translations)
+
+```PHP
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
 // ...
 
+/**
+ * @ORM\Entity
+ */
 class YourEntity implements Translatable
 {
     /**
@@ -54,7 +89,8 @@ class YourEntity implements Translatable
 ```
 
 - entity (for personal translations)
-```
+
+```PHP
 /**
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="YourEntityTranslation")
@@ -115,9 +151,9 @@ class YourEntity
 ```
 
 - sonata admin page
-```
-    protected function configureFormFields(FormMapper $formMapper)
+```PHP
+    protected function configureFormFields(FormMapper $formMapper): void
     {
-        $formMapper->add('fieldname', 'bnhtranslations');
+        $formMapper->add('fieldname', TranslatableFieldBundle\Form\Type\TranslatorType::class);
     }
 ```
