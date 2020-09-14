@@ -37,7 +37,7 @@ class TranslatableFieldManager
     }
 
     /* @var $translation AbstractPersonalTranslation */
-    private function getTranslations($entity)
+    private function getTranslations($entity, string $fieldName)
     {
         // 'personal' translations (separate table for each entity)
         if (\method_exists($entity, self::GEDMO_PERSONAL_TRANSLATIONS_GET) && \is_callable(array(
@@ -52,8 +52,8 @@ class TranslatableFieldManager
             return $translations;
         } // 'basic' translations (ext_translations table)
         else {
-            return \array_map(function ($element) {
-                return \array_shift($element);
+            return \array_map(function ($element) use ($fieldName) {
+                return $element[$fieldName] ?? null;
             }, $this->translationRepository->findTranslations($entity));
         }
     }
@@ -99,10 +99,10 @@ class TranslatableFieldManager
     }
 
     // SELECT
-    public function getTranslatedFields($entity, $fieldName)
+    public function getTranslatedFields($entity, string $fieldName)
     {
         // translations
-        $translations = $this->getTranslations($entity);
+        $translations = $this->getTranslations($entity, $fieldName);
 
         $entity = $this->getEntityInDefaultLocale($entity);
         // translations + default locale value
@@ -226,6 +226,5 @@ class TranslatableFieldManager
         }
 
         $this->em->persist($entity);
-        $this->em->flush();
     }
 }
