@@ -182,18 +182,19 @@ class TranslatableFieldManager
                 $value = $submittedValues[$locale];
                 if ($value === null) {
                     // remove - default locale - external / personal
+                    $entityId = $this->getEntityId($entity);
                     if ($locale === $this->defaultLocale) {
                         $this->setFieldInDefaultLocale($entity, $fieldName, null);
-                    } else {
+                    } elseif($entityId) {
                         if ($personalTranslations && $entity->{self::GEDMO_PERSONAL_TRANSLATIONS_FIND}($locale,
                                 $fieldName)) {
                             // remove - not default locale - personal
                             $removeQueries[] = $this->removePersonalTranslation($locale, $fieldName,
-                                \get_class($entity), $this->getEntityId($entity));
+                                \get_class($entity), $entityId);
                         } else {
                             // remove - not default locale - external
                             $removeQueries[] = $this->removeTranslation($locale, $fieldName, \get_class($entity),
-                                $this->getEntityId($entity));
+                                $entityId);
                         }
                     }
                     continue;
