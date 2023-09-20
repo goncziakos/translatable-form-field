@@ -10,7 +10,7 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Component\Translation\DataCollectorTranslator;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Bnh\TranslatableFieldBundle\Helpers\TranslatableFieldManager as TranslatableFieldManager;
@@ -25,7 +25,7 @@ class TranslatorType extends AbstractType
     public function __construct(
         $localeCodes,
         TranslatableFieldManager $translatableFieldManager,
-        TranslatorInterface $translator
+        DataCollectorTranslator $translator
     ) {
         $this->locales = $localeCodes;
         $this->translatablefieldmanager = $translatableFieldManager;
